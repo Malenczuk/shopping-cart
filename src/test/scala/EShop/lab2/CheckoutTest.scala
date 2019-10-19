@@ -1,34 +1,34 @@
 package EShop.lab2
 
-import EShop.lab2.Checkout.{CancelCheckout, ReceivePayment, SelectDeliveryMethod, SelectPayment, StartCheckout}
-import akka.actor.{ActorSystem, Cancellable, Props}
+import EShop.lab2.Checkout._
+import akka.actor.{ActorRef, ActorSystem, Cancellable, Props}
 import akka.testkit.{ImplicitSender, TestKit}
 import org.scalatest.{BeforeAndAfterAll, FlatSpecLike}
 
 import scala.concurrent.duration.{FiniteDuration, _}
 
 class CheckoutTest
-  extends TestKit(ActorSystem("CheckoutTest"))
-  with FlatSpecLike
-  with ImplicitSender
-  with BeforeAndAfterAll {
+    extends TestKit(ActorSystem("CheckoutTest"))
+    with FlatSpecLike
+    with ImplicitSender
+    with BeforeAndAfterAll {
 
   val deliveryMethod = "post"
-  val paymentMethod  = "paypal"
+  val paymentMethod = "paypal"
 
   override def afterAll: Unit =
     TestKit.shutdownActorSystem(system)
   import CheckoutTest._
 
   it should "be in selectingDelivery state after checkout start" in {
-    val checkoutActor = checkoutActorWithResponseOnStateChange(system)
+    val checkoutActor = checkoutActorWithResponseOnStateChange(system, self)
 
     checkoutActor ! StartCheckout
     expectMsg(selectingDeliveryMsg)
   }
 
   it should "be in cancelled state after cancel message received in selectingDelivery State" in {
-    val checkoutActor = checkoutActorWithResponseOnStateChange(system)
+    val checkoutActor = checkoutActorWithResponseOnStateChange(system, self)
 
     checkoutActor ! StartCheckout
     expectMsg(selectingDeliveryMsg)
@@ -37,7 +37,7 @@ class CheckoutTest
   }
 
   it should "be in cancelled state after expire checkout timeout in selectingDelivery state" in {
-    val checkoutActor = system.actorOf(Props(new Checkout {
+    val checkoutActor = system.actorOf(Props(new Checkout(self) {
       override val checkoutTimerDuration: FiniteDuration = 1.seconds
 
       override def cancelled: Receive = {
@@ -52,7 +52,7 @@ class CheckoutTest
   }
 
   it should "be in selectingPayment state after delivery method selected" in {
-    val checkoutActor = checkoutActorWithResponseOnStateChange(system)
+    val checkoutActor = checkoutActorWithResponseOnStateChange(system, self)
 
     checkoutActor ! StartCheckout
     expectMsg(selectingDeliveryMsg)
@@ -61,7 +61,7 @@ class CheckoutTest
   }
 
   it should "be in cancelled state after cancel message received in selectingPayment State" in {
-    val checkoutActor = checkoutActorWithResponseOnStateChange(system)
+    val checkoutActor = checkoutActorWithResponseOnStateChange(system, self)
 
     checkoutActor ! StartCheckout
     expectMsg(selectingDeliveryMsg)
@@ -72,7 +72,7 @@ class CheckoutTest
   }
 
   it should "be in cancelled state after expire checkout timeout in selectingPayment state" in {
-    val checkoutActor = system.actorOf(Props(new Checkout {
+    val checkoutActor = system.actorOf(Props(new Checkout(self) {
       override val checkoutTimerDuration: FiniteDuration = 1.seconds
 
       override def cancelled: Receive = {
@@ -88,7 +88,7 @@ class CheckoutTest
   }
 
   it should "be in processingPayment state after payment selected" in {
-    val checkoutActor = checkoutActorWithResponseOnStateChange(system)
+    val checkoutActor = checkoutActorWithResponseOnStateChange(system, self)
 
     checkoutActor ! StartCheckout
     expectMsg(selectingDeliveryMsg)
@@ -99,7 +99,7 @@ class CheckoutTest
   }
 
   it should "be in cancelled state after cancel message received in processingPayment State" in {
-    val checkoutActor = checkoutActorWithResponseOnStateChange(system)
+    val checkoutActor = checkoutActorWithResponseOnStateChange(system, self)
 
     checkoutActor ! StartCheckout
     expectMsg(selectingDeliveryMsg)
@@ -112,7 +112,7 @@ class CheckoutTest
   }
 
   it should "be in cancelled state after expire checkout timeout in processingPayment state" in {
-    val checkoutActor = system.actorOf(Props(new Checkout {
+    val checkoutActor = system.actorOf(Props(new Checkout(self) {
       override val paymentTimerDuration: FiniteDuration = 1.seconds
 
       override def cancelled: Receive = {
@@ -129,7 +129,7 @@ class CheckoutTest
   }
 
   it should "be in closed state after payment completed" in {
-    val checkoutActor = checkoutActorWithResponseOnStateChange(system)
+    val checkoutActor = checkoutActorWithResponseOnStateChange(system, self)
 
     checkoutActor ! StartCheckout
     expectMsg(selectingDeliveryMsg)
@@ -142,7 +142,7 @@ class CheckoutTest
   }
 
   it should "not change state after cancel msg in completed state" in {
-    val checkoutActor = checkoutActorWithResponseOnStateChange(system)
+    val checkoutActor = checkoutActorWithResponseOnStateChange(system, self)
 
     checkoutActor ! StartCheckout
     expectMsg(selectingDeliveryMsg)
@@ -160,15 +160,15 @@ class CheckoutTest
 
 object CheckoutTest {
 
-  val emptyMsg                  = "empty"
-  val selectingDeliveryMsg      = "selectingDelivery"
+  val emptyMsg = "empty"
+  val selectingDeliveryMsg = "selectingDelivery"
   val selectingPaymentMethodMsg = "selectingPaymentMethod"
-  val processingPaymentMsg      = "processingPayment"
-  val cancelledMsg              = "cancelled"
-  val closedMsg                 = "closed"
+  val processingPaymentMsg = "processingPayment"
+  val cancelledMsg = "cancelled"
+  val closedMsg = "closed"
 
-  def checkoutActorWithResponseOnStateChange(system: ActorSystem) =
-    system.actorOf(Props(new Checkout {
+  def checkoutActorWithResponseOnStateChange(system: ActorSystem, cartRef: ActorRef) =
+    system.actorOf(Props(new Checkout(cartRef) {
 
       override def receive() = {
         val result = super.receive

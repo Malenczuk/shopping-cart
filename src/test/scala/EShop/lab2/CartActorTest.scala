@@ -1,6 +1,6 @@
 package EShop.lab2
 
-import EShop.lab2.CartActor.{AddItem, CancelCheckout, CloseCheckout, RemoveItem, StartCheckout}
+import EShop.lab2.CartActor._
 import akka.actor.{ActorRef, ActorSystem, Cancellable, Props}
 import akka.testkit.{ImplicitSender, TestKit}
 import org.scalatest.{BeforeAndAfterAll, FlatSpecLike}
@@ -8,10 +8,10 @@ import org.scalatest.{BeforeAndAfterAll, FlatSpecLike}
 import scala.concurrent.duration._
 
 class CartActorTest
-  extends TestKit(ActorSystem("CheckoutTest"))
-  with FlatSpecLike
-  with ImplicitSender
-  with BeforeAndAfterAll {
+    extends TestKit(ActorSystem("CheckoutTest"))
+    with FlatSpecLike
+    with ImplicitSender
+    with BeforeAndAfterAll {
 
   override def afterAll: Unit =
     TestKit.shutdownActorSystem(system)
@@ -134,8 +134,8 @@ class CartActorTest
 }
 
 object CartActorTest {
-  val emptyMsg      = "empty"
-  val nonEmptyMsg   = "nonEmpty"
+  val emptyMsg = "empty"
+  val nonEmptyMsg = "nonEmpty"
   val inCheckoutMsg = "inCheckout"
 
   def cartActorWithCartSizeResponseOnStateChange(system: ActorSystem): ActorRef =
